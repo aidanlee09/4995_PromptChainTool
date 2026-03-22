@@ -4,16 +4,20 @@ import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {
-    const { flavorId, imageId } = await request.json();
+    const body = await request.json();
+    const { flavorId, imageId } = body;
     
     if (!flavorId || !imageId) {
-      return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
+      return NextResponse.json({ error: "Missing flavorId or imageId" }, { status: 400 });
     }
 
     const authHeader = request.headers.get("Authorization");
     if (!authHeader) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Convert flavorId to number as the database uses integers
+    const numericFlavorId = parseInt(flavorId);
 
     // Call the external pipeline API
     const response = await fetch("https://api.almostcrackd.ai/pipeline/generate-captions", {
@@ -24,14 +28,24 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         imageId,
-        humorFlavorId: flavorId
+        humorFlavorId: numericFlavorId
       })
     });
 
-    const data = await response.json();
+    // Read text first to handle non-JSON responses (like server crashes)
+    const responseText = await response.text();
+    let data: any;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      throw new Error(`Invalid JSON from pipeline: ${responseText.substring(0, 100)}`);
+    }
 
     if (!response.ok) {
-      throw new Error(data.message || data.error || `Pipeline error: ${response.status}`);
+      // The error "Cannot read properties of undefined (reading 'specificationVersion')" 
+      // is likely coming from the remote server's error body.
+      const errorMessage = data?.message || data?.error || responseText || `Pipeline error: ${response.status}`;
+      throw new Error(errorMessage);
     }
 
     // Heuristic search for the caption in the response
@@ -45,14 +59,11 @@ export async function POST(request: Request) {
     }
 
     const latestItem = captions[captions.length - 1];
-    
-    // Look for common field names
     let finalCaption = latestItem.caption_text || 
                        latestItem.caption || 
                        latestItem.content || 
                        latestItem.text;
 
-    // If still not found, search all string properties
     if (!finalCaption) {
       for (const key in latestItem) {
         if (typeof latestItem[key] === 'string' && latestItem[key].length > 10) {
@@ -69,6 +80,9 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error("Caption generation error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json({ 
+      error: error.message || "Internal server error",
+      details: "Check server logs or remote API status."
+    }, { status: 500 });
   }
 }

@@ -14,33 +14,36 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<Theme>('system');
 
+  // Load saved theme once on mount
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as Theme | null;
-    if (savedTheme) {
+    if (savedTheme && savedTheme !== 'system') {
       setThemeState(savedTheme);
     }
   }, []);
 
+  // Update root attribute when theme changes
   useEffect(() => {
     const root = window.document.documentElement;
     
+    const applyTheme = (currentTheme: Theme) => {
+      if (currentTheme === 'system') {
+        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        root.setAttribute('data-theme', systemTheme);
+      } else {
+        root.setAttribute('data-theme', currentTheme);
+      }
+    };
+
+    applyTheme(theme);
+    localStorage.setItem('theme', theme);
+
     if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      root.setAttribute('data-theme', systemTheme);
-      
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handleChange = () => {
-        if (theme === 'system') {
-          root.setAttribute('data-theme', mediaQuery.matches ? 'dark' : 'light');
-        }
-      };
+      const handleChange = () => applyTheme('system');
       mediaQuery.addEventListener('change', handleChange);
       return () => mediaQuery.removeEventListener('change', handleChange);
-    } else {
-      root.setAttribute('data-theme', theme);
     }
-    
-    localStorage.setItem('theme', theme);
   }, [theme]);
 
   const setTheme = (newTheme: Theme) => {

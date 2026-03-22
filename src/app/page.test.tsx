@@ -7,7 +7,11 @@ jest.mock('@/lib/supabase-server', () => ({
     auth: {
       getUser: jest.fn(() => Promise.resolve({
         data: {
-          user: { email: 'test@example.com', id: '123' }
+          user: { 
+            email: 'test@example.com', 
+            id: '123',
+            user_metadata: { full_name: 'Test User' }
+          }
         }
       }))
     },
@@ -24,8 +28,8 @@ jest.mock('@/lib/supabase-server', () => ({
 }));
 
 // Mock the components
-jest.mock('@/components/ApiButton', () => ({
-  ApiButton: () => <div data-testid="api-button">ApiButton</div>
+jest.mock('@/components/HumorFlavorManager', () => ({
+  HumorFlavorManager: () => <div data-testid="flavor-manager">HumorFlavorManager</div>
 }));
 
 jest.mock('@/components/SignOutButton', () => ({
@@ -33,15 +37,14 @@ jest.mock('@/components/SignOutButton', () => ({
 }));
 
 describe('Home', () => {
-  it('renders the welcome message', async () => {
+  it('renders the dashboard', async () => {
     // Note: Testing async server components directly with RTL is not fully supported 
     // without some extra setup, but this is a representative test.
     const ResolvedHome = await Home();
     render(ResolvedHome);
     
-    expect(screen.getByText(/Welcome back\./i)).toBeInTheDocument();
+    expect(screen.getByText(/Test User/i)).toBeInTheDocument();
     expect(screen.getByText(/test@example\.com/i)).toBeInTheDocument();
-    expect(screen.getByText(/Role: Super Admin/i)).toBeInTheDocument();
-    expect(screen.getByTestId('api-button')).toBeInTheDocument();
+    expect(screen.getByTestId('flavor-manager')).toBeInTheDocument();
   });
 });
