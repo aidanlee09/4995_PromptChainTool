@@ -4,6 +4,11 @@ import { HumorFlavorManager } from "@/components/HumorFlavorManager";
 import { createClientServer } from "@/lib/supabase-server";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Image from "next/image";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Prompt Chain Tool",
+};
 
 export default async function Home() {
   const supabase = await createClientServer();
