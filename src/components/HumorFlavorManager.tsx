@@ -78,6 +78,63 @@ export const HumorFlavorManager: React.FC = () => {
     router.push(`/flavor/${flavor.id}`);
   };
 
+  const handleDuplicate = async (flavor: HumorFlavor) => {
+    const newSlug = prompt('Enter slug for the duplicated flavor:', `${flavor.slug}-copy`);
+    if (!newSlug) return;
+
+    setLoading(true);
+    try {
+      // 1. Create the new flavor
+      const { data: newFlavor, error: flavorError } = await supabase
+        .from('humor_flavors')
+        .insert([{ 
+          slug: newSlug.toLowerCase().trim(), 
+          description: `Copy of ${flavor.slug}: ${flavor.description}` 
+        }])
+        .select()
+        .single();
+
+      if (flavorError) throw flavorError;
+
+      // 2. Fetch steps from original flavor
+      const { data: steps, error: stepsError } = await supabase
+        .from('humor_flavor_steps')
+        .select('*')
+        .eq('humor_flavor_id', flavor.id);
+
+      if (stepsError) throw stepsError;
+
+      // 3. Insert steps for new flavor
+      if (steps && steps.length > 0) {
+        const newSteps = steps.map(({ 
+          id, 
+          created_at, 
+          created_datetime_utc, 
+          updated_at, 
+          updated_datetime_utc, 
+          ...step 
+        }) => ({
+          ...step,
+          humor_flavor_id: newFlavor.id
+        }));
+
+        const { error: insertError } = await supabase
+          .from('humor_flavor_steps')
+          .insert(newSteps);
+
+        if (insertError) throw insertError;
+      }
+
+      setMessage({ text: `Duplicated ${flavor.slug} to ${newSlug}`, isError: false });
+      fetchFlavors();
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err: any) {
+      alert(err.message || 'Duplicate failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm('Permanently remove this humor flavor?')) return;
 
@@ -268,6 +325,12 @@ export const HumorFlavorManager: React.FC = () => {
                         style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px', fontSize: '12px', fontWeight: 700 }}
                       >
                         EDIT
+                      </button>
+                      <button 
+                        onClick={() => handleDuplicate(flavor)}
+                        style={{ background: 'none', border: 'none', color: '#4ade80', cursor: 'pointer', padding: '4px', fontSize: '12px', fontWeight: 700 }}
+                      >
+                        DUPLICATE
                       </button>
                       <button 
                         onClick={() => handleDelete(flavor.id)}
