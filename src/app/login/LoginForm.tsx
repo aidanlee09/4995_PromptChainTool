@@ -35,7 +35,7 @@ function LoginForm() {
       </div>
 
       <div className={styles.titleContainer}>
-        <h1 className={styles.title}>Prompt Chain Tool</h1>
+        <h1 className={styles.title}>Test Chain Tool</h1>
         <p className={styles.description}>
           Secure access to the prompt engineering dashboard
         </p>

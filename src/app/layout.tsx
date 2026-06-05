@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Prompt Chain Tool",
-    template: "%s | Prompt Chain Tool",
+    default: "Test Chain Tool",
+    template: "%s | Test Chain Tool",
   },
   description: "Prompt engineering dashboard",
 };
